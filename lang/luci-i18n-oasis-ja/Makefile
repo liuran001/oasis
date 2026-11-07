@@ -3,7 +3,7 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=luci-i18n-oasis-ja
 PKG_VERSION:=1.0.0
 PKG_RELEASE:=17
-PKG_BUILD_DEPENDS:=po2lmo/host
+PKG_BUILD_DEPENDS:=luci-base/host
 
 PO2LMO:=$(STAGING_DIR_HOSTPKG)/bin/po2lmo
 
