@@ -67,4 +67,5 @@ test('SDK build script invokes config through sh and only installs the repositor
     assert.match(script, /\.\/scripts\/feeds install -p oasis -f "\$package"/);
     assert.doesNotMatch(script, /\.\/scripts\/feeds install -a/);
     assert.doesNotMatch(script, /package\/index/);
+    assert.match(script, /WORK_DIR=\$\(CDPATH= cd -- "\$WORK_DIR" && pwd -P\)/);
 });

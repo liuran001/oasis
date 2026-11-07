@@ -17,6 +17,8 @@ WORK_DIR=$6
 [ "$FORMAT" = "ipk" ] || [ "$FORMAT" = "apk" ] || fail "unsupported package format: $FORMAT"
 [ -n "${PACKAGES:-}" ] || fail "PACKAGES must contain the packages to build"
 
+mkdir -p "$WORK_DIR"
+WORK_DIR=$(CDPATH= cd -- "$WORK_DIR" && pwd -P)
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 CACHE_DIR=${OASIS_SDK_CACHE:-"$WORK_DIR/sdk-cache"}
 DOWNLOAD_DIR="$WORK_DIR/download"
