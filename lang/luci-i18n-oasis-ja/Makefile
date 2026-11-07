@@ -18,6 +18,10 @@ define Package/luci-i18n-oasis-ja
   PKGARCH:=all
 endef
 
+define Build/Prepare
+	$(INSTALL_DIR) $(PKG_BUILD_DIR)
+endef
+
 define Build/Compile
 endef
 

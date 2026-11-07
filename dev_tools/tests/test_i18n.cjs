@@ -186,6 +186,8 @@ for (const [packageName, language, basePackage, lmo] of [
         const makefile = fs.readFileSync(path.join(root, 'lang', packageName, 'Makefile'), 'utf8');
         assert.match(makefile, new RegExp('PKG_NAME:=' + packageName + '\\n'));
         assert.match(makefile, /PKG_BUILD_DEPENDS:=luci-base\/host/);
+        assert.match(makefile, /define Build\/Prepare/);
+        assert.match(makefile, /INSTALL_DIR\) \$\(PKG_BUILD_DIR\)/);
         assert.match(makefile, new RegExp('@LUCI_LANG_' + language));
         assert.match(makefile, new RegExp(basePackage));
         assert.match(makefile, new RegExp(lmo.replace('.', '\\.')));
