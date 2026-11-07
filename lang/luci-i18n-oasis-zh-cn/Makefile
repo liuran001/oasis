@@ -9,7 +9,7 @@ LUCI_NAME:=luci-i18n-oasis-zh-cn
 LUCI_TYPE:=i18n
 LUCI_BASENAME:=oasis
 LUCI_TITLE:=Simplified Chinese translation for luci-app-oasis
-LUCI_DEPENDS:=+luci-app-oasis +luci-i18n-base-zh-cn
+LUCI_DEPENDS:=+luci-app-oasis
 LUCI_PKGARCH:=all
 
 include $(TOPDIR)/feeds/luci/luci.mk
