@@ -59,3 +59,11 @@ test('browser tests install pinned Playwright and Chromium', () => {
     assert.match(workflow, /playwright" install --with-deps chromium/);
     assert.match(workflow, /NODE_PATH:\s*\$\{\{\s*runner\.temp\s*\}\}\/oasis-tests\/node_modules/);
 });
+
+test('SDK build script invokes config through sh and only installs the repository feed', () => {
+    const script = fs.readFileSync(path.resolve(__dirname, '../../dev_tools/build_openwrt_packages.sh'), 'utf8');
+    assert.match(script, /sh \.\/scripts\/config --enable CONFIG_LUCI_LANG_ja/);
+    assert.match(script, /sh \.\/scripts\/config --enable CONFIG_LUCI_LANG_zh_Hans/);
+    assert.match(script, /\.\/scripts\/feeds install -p oasis -f "\$package"/);
+    assert.doesNotMatch(script, /\.\/scripts\/feeds install -a/);
+});

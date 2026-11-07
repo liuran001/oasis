@@ -68,14 +68,14 @@ sed \
 printf 'src-link oasis %s\n' "$ROOT" >> feeds.conf
 
 ./scripts/feeds update -a
-./scripts/feeds install -a
 make defconfig
 
-./scripts/config --enable CONFIG_LUCI_LANG_ja
-./scripts/config --enable CONFIG_LUCI_LANG_zh_Hans
+sh ./scripts/config --enable CONFIG_LUCI_LANG_ja
+sh ./scripts/config --enable CONFIG_LUCI_LANG_zh_Hans
 TARGETS=""
 for package in $PACKAGES; do
-    ./scripts/config --enable "CONFIG_PACKAGE_$package"
+    ./scripts/feeds install -p oasis -f "$package"
+    sh ./scripts/config --enable "CONFIG_PACKAGE_$package"
     TARGETS="$TARGETS package/$package/compile"
 done
 make defconfig
