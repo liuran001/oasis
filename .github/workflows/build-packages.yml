@@ -67,39 +67,64 @@ jobs:
     name: ${{ matrix.artifact }}
     runs-on: ubuntu-latest
     needs: host-tests
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
           - sdk: x86_64-24.10.8
+            version: 24.10.8
+            target: x86
+            subtarget: "64"
             arch: x86_64
             format: ipk
             artifact: oasis-ipk-24.10.8-x86_64
           - sdk: aarch64_generic-24.10.8
+            version: 24.10.8
+            target: armsr
+            subtarget: armv8
             arch: aarch64_generic
             format: ipk
             artifact: oasis-ipk-24.10.8-arm64
           - sdk: arm_cortex-a15_neon-vfpv4-24.10.8
+            version: 24.10.8
+            target: armsr
+            subtarget: armv7
             arch: arm_cortex-a15_neon-vfpv4
             format: ipk
             artifact: oasis-ipk-24.10.8-arm32
           - sdk: mipsel_24kc-24.10.8
+            version: 24.10.8
+            target: ramips
+            subtarget: mt7621
             arch: mipsel_24kc
             format: ipk
             artifact: oasis-ipk-24.10.8-mipsle
           - sdk: x86_64-25.12.5
+            version: 25.12.5
+            target: x86
+            subtarget: "64"
             arch: x86_64
             format: apk
             artifact: oasis-apk-25.12.5-x86_64
           - sdk: aarch64_generic-25.12.5
+            version: 25.12.5
+            target: armsr
+            subtarget: armv8
             arch: aarch64_generic
             format: apk
             artifact: oasis-apk-25.12.5-arm64
           - sdk: arm_cortex-a15_neon-vfpv4-25.12.5
+            version: 25.12.5
+            target: armsr
+            subtarget: armv7
             arch: arm_cortex-a15_neon-vfpv4
             format: apk
             artifact: oasis-apk-25.12.5-arm32
           - sdk: mipsel_24kc-25.12.5
+            version: 25.12.5
+            target: ramips
+            subtarget: mt7621
             arch: mipsel_24kc
             format: apk
             artifact: oasis-apk-25.12.5-mipsle
@@ -108,29 +133,40 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Prepare artifact directory
-        run: mkdir -p out
+      - name: Install SDK extraction tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends zstd
 
-      - name: Build packages with the official OpenWrt SDK
-        uses: openwrt/gh-action-sdk@f5813d30eeef3534b58ac7e79c5d8842b6035434
+      - name: Cache official SDK archives
+        uses: actions/cache@v4
+        with:
+          path: .sdk-cache
+          key: openwrt-sdk-${{ matrix.sdk }}
+
+      - name: Build with a prebuilt official SDK archive
         env:
-          ARCH: ${{ matrix.sdk }}
-          FEEDNAME: oasis
           PACKAGES: ${{ env.PACKAGES }}
-          ARTIFACTS_DIR: ${{ github.workspace }}/out
+          OASIS_SDK_CACHE: ${{ github.workspace }}/.sdk-cache
           BUILD_LOG: 1
+        run: |
+          sh dev_tools/build_openwrt_packages.sh \
+            "${{ matrix.version }}" \
+            "${{ matrix.target }}" \
+            "${{ matrix.subtarget }}" \
+            "${{ matrix.arch }}" \
+            "${{ matrix.format }}" \
+            "work"
 
       - name: Verify package completeness and Chinese LMO
         shell: bash
-        run: |
-          directory="out/bin/packages/${{ matrix.arch }}/oasis"
-          sh dev_tools/verify_packages.sh "$directory" "${{ matrix.format }}" $PACKAGES
+        run: sh dev_tools/verify_packages.sh "work/out" "${{ matrix.format }}" $PACKAGES
 
       - name: Upload packages
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: out/bin/packages/${{ matrix.arch }}/oasis/*.${{ matrix.format }}
+          path: work/out/*.${{ matrix.format }}
           if-no-files-found: error
 
       - name: Upload build logs on failure
@@ -138,7 +174,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}-logs
-          path: out/logs/
+          path: work/sdk/**/logs/
           if-no-files-found: ignore
 
   release:

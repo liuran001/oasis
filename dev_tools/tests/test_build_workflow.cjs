@@ -30,9 +30,11 @@ test('workflow builds all four architectures in both package formats', () => {
     assert.equal((workflow.match(/format:\s*apk/g) || []).length, 4);
 });
 
-test('workflow uses a pinned official SDK action and all expected packages', () => {
-    assert.match(workflow, /openwrt\/gh-action-sdk@[0-9a-f]{40}/);
-    assert.match(workflow, /FEEDNAME:\s*oasis/);
+test('workflow downloads prebuilt official SDK archives and all expected packages', () => {
+    assert.match(workflow, /dev_tools\/build_openwrt_packages\.sh/);
+    assert.match(workflow, /actions\/cache@v4/);
+    assert.match(workflow, /timeout-minutes:\s*30/);
+    assert.doesNotMatch(workflow, /openwrt\/gh-action-sdk/);
     assert.doesNotMatch(workflow, /IGNORE_ERRORS:\s*(?:1|true)/);
     for (const name of expectedPackages) assert.match(workflow, new RegExp(`(^|\\s)${name}(?=\\s|$)`, 'm'));
 });
