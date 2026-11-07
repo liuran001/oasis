@@ -65,8 +65,16 @@ case "$EXT" in
         fi
         ;;
     apk)
-        if ! tar -tf "$ZH_PACKAGE" > "$TMP_DIR/contents"; then
-            fail "cannot read APK package $ZH_PACKAGE"
+        if tar -tf "$ZH_PACKAGE" > "$TMP_DIR/contents" 2>/dev/null; then
+            :
+        elif [ -n "${OASIS_APK_TOOL:-}" ] && [ -x "$OASIS_APK_TOOL" ]; then
+            mkdir -p "$TMP_DIR/apk-contents"
+            if ! "$OASIS_APK_TOOL" extract --destination "$TMP_DIR/apk-contents" "$ZH_PACKAGE"; then
+                fail "cannot extract APK package $ZH_PACKAGE with $OASIS_APK_TOOL"
+            fi
+            (cd "$TMP_DIR/apk-contents" && find . -type f) > "$TMP_DIR/contents"
+        else
+            fail "cannot read APK package $ZH_PACKAGE; set OASIS_APK_TOOL to the SDK's apk executable"
         fi
         ;;
 esac

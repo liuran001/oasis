@@ -76,3 +76,11 @@ test('SDK build script invokes config through sh and only installs the repositor
     assert.doesNotMatch(script, /package\/luci-i18n-oasis-zh-cn\/compile/);
     assert.equal((script.match(/luci-i18n-oasis-ja\|luci-i18n-oasis-zh-cn\) continue/g) || []).length, 2);
 });
+
+test('APK verification receives the extractor from the downloaded SDK', () => {
+    const script = fs.readFileSync(path.resolve(__dirname, '../../dev_tools/build_openwrt_packages.sh'), 'utf8');
+    for (const text of [script, workflow]) {
+        assert.match(text, /OASIS_APK_TOOL=\$\(find [^\n]+\/bin\/apk/);
+        assert.match(text, /export OASIS_APK_TOOL/);
+    }
+});

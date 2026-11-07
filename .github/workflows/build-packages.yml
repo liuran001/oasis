@@ -160,7 +160,10 @@ jobs:
 
       - name: Verify package completeness and Chinese LMO
         shell: bash
-        run: sh dev_tools/verify_packages.sh "work/out" "${{ matrix.format }}" $PACKAGES
+        run: |
+          OASIS_APK_TOOL=$(find work/sdk -type f -path '*/bin/apk' | head -n 1)
+          export OASIS_APK_TOOL
+          sh dev_tools/verify_packages.sh "work/out" "${{ matrix.format }}" $PACKAGES
 
       - name: Upload packages
         uses: actions/upload-artifact@v4

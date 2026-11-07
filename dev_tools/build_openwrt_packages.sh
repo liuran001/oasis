@@ -60,6 +60,11 @@ mkdir -p "$SDK_ROOT"
 tar --zstd -xf "$ARCHIVE" -C "$SDK_ROOT"
 SDK_DIR=$(find "$SDK_ROOT" -mindepth 1 -maxdepth 1 -type d -name 'openwrt-sdk-*' | head -n 1)
 [ -n "$SDK_DIR" ] || fail "SDK archive did not contain an openwrt-sdk directory"
+if [ "$FORMAT" = "apk" ]; then
+    OASIS_APK_TOOL=$(find "$SDK_DIR/staging_dir" -type f -path '*/bin/apk' | head -n 1)
+    [ -n "$OASIS_APK_TOOL" ] || fail "apk not found in $SDK_DIR/staging_dir"
+    export OASIS_APK_TOOL
+fi
 
 cd "$SDK_DIR"
 sed \

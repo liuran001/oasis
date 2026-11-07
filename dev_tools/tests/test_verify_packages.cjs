@@ -69,8 +69,30 @@ function fixture(t, ext, options = {}) {
     return directory;
 }
 
-function verify(directory, ext) {
-    return spawnSync('sh', [verifier, directory, ext, ...packages], { encoding: 'utf8' });
+function verify(directory, ext, environment = {}) {
+    return spawnSync('sh', [verifier, directory, ext, ...packages], {
+        encoding: 'utf8',
+        env: { ...process.env, ...environment },
+    });
+}
+
+function createApkTool(t) {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'oasis-apk-tool-'));
+    t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+    const tool = path.join(directory, 'apk');
+    const argumentsFile = path.join(directory, 'arguments');
+    fs.writeFileSync(tool, `#!/bin/sh
+set -eu
+printf '%s\\n' "$@" > "$OASIS_TEST_APK_ARGS"
+[ "$1" = "extract" ]
+[ "$2" = "--destination" ]
+[ -d "$3" ]
+[ -f "$4" ]
+mkdir -p "$3/usr/lib/lua/luci/i18n"
+printf 'fixture-lmo' > "$3/usr/lib/lua/luci/i18n/oasis.zh-cn.lmo"
+`);
+    fs.chmodSync(tool, 0o755);
+    return { tool, argumentsFile };
 }
 
 for (const ext of ['ipk', 'apk']) {
@@ -103,6 +125,30 @@ test('accepts a zstd-compressed APK package', t => {
     const result = verify(fixture(t, 'apk', { container: 'zstd' }), 'apk');
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /Verified 11 apk packages/);
+});
+
+test('extracts an APK v3 package with the SDK tool when tar cannot read it', t => {
+    const directory = fixture(t, 'apk');
+    const packageFile = path.join(directory, packageName('luci-i18n-oasis-zh-cn', 'apk'));
+    fs.writeFileSync(packageFile, 'opaque APK v3 fixture');
+    const { tool, argumentsFile } = createApkTool(t);
+    const result = verify(directory, 'apk', {
+        OASIS_APK_TOOL: tool,
+        OASIS_TEST_APK_ARGS: argumentsFile,
+    });
+    assert.equal(result.status, 0, result.stderr);
+    const args = fs.readFileSync(argumentsFile, 'utf8').trim().split('\n');
+    assert.deepEqual(args.slice(0, 2), ['extract', '--destination']);
+    assert.equal(args[3], packageFile);
+    assert.match(result.stdout, /Verified 11 apk packages/);
+});
+
+test('rejects an unreadable APK when the SDK tool is not provided', t => {
+    const directory = fixture(t, 'apk');
+    fs.writeFileSync(path.join(directory, packageName('luci-i18n-oasis-zh-cn', 'apk')), 'opaque APK v3 fixture');
+    const result = verify(directory, 'apk', { OASIS_APK_TOOL: '' });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /OASIS_APK_TOOL/);
 });
 
 test('rejects a missing expected package', t => {
