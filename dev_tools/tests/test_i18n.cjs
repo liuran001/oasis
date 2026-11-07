@@ -182,14 +182,14 @@ for (const [packageName, language, basePackage, lmo] of [
     ['luci-i18n-oasis-ja', 'ja', 'luci-i18n-base-ja', 'oasis.ja.lmo'],
     ['luci-i18n-oasis-zh-cn', 'zh_Hans', 'luci-i18n-base-zh-cn', 'oasis.zh-cn.lmo'],
 ]) {
-    test(packageName + ' declares its package name, LuCI language alias and LMO path', () => {
+    test(packageName + ' uses the official LuCI translation builder and source catalog', () => {
         const makefile = fs.readFileSync(path.join(root, 'lang', packageName, 'Makefile'), 'utf8');
         assert.match(makefile, new RegExp('PKG_NAME:=' + packageName + '\\n'));
         assert.match(makefile, /PKG_BUILD_DEPENDS:=luci-base\/host/);
-        assert.match(makefile, /define Build\/Prepare/);
-        assert.match(makefile, /INSTALL_DIR\) \$\(PKG_BUILD_DIR\)/);
+        assert.match(makefile, /LUCI_TYPE:=i18n/);
+        assert.match(makefile, /include \$\(TOPDIR\)\/feeds\/luci\/luci\.mk/);
         assert.match(makefile, new RegExp('@LUCI_LANG_' + language));
         assert.match(makefile, new RegExp(basePackage));
-        assert.match(makefile, new RegExp(lmo.replace('.', '\\.')));
+        assert.ok(fs.existsSync(path.join(root, 'lang', packageName, 'po', language, 'luci-app-oasis.po')));
     });
 }
