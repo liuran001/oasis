@@ -140,30 +140,32 @@ test('Lua serializer preserves Unicode, quotes, backslashes and newlines without
     assert.doesNotThrow(() => new vm.Script('const label = ' + encoded + ';'));
 });
 
-test('all six rendered WebUI dictionaries parse as JavaScript and contain exact Japanese values', () => {
-    const entries = [...catalog].map(([key, entry]) => [key, entry.translation]);
-    const encoded = serializeTranslations(entries);
-    const literals = new Map(entries.map(([key], index) => [key, encoded[index]]));
-    for (const name of ['chat', 'tools', 'sysmsg', 'icons', 'rollback-list', 'setting-v2']) {
-        const template = fs.readFileSync(path.join(root, 'luci-app-oasis/files/luci/view', name + '.htm'), 'utf8');
-        const context = { window: {} };
-        const expected = [];
-        for (const block of template.matchAll(/<script>([\s\S]*?)<\/script>/g)) {
-            assert.doesNotMatch(block[1], /<%:/, name + ': HTML translation tag in JS');
-            const rendered = block[1].replace(/(\w+):\s*<%=\s*translate_js\(("(?:\\.|[^"\\])*")\)\s*%>/g,
-                (_, key, message) => {
-                    const id = JSON.parse(message);
-                    assert.ok(literals.has(id), id);
-                    expected.push([key, catalog.get(id).translation]);
-                    return key + ': ' + literals.get(id);
-                }).replace(/<%=[\s\S]*?%>/g, 'fixture');
-            vm.runInNewContext(rendered, context);
+for (const [language, selectedCatalog] of [['Japanese', catalog], ['Simplified Chinese', chineseCatalog]]) {
+    test('all six rendered WebUI dictionaries parse as JavaScript and contain exact ' + language + ' values', () => {
+        const entries = [...selectedCatalog].map(([key, entry]) => [key, entry.translation]);
+        const encoded = serializeTranslations(entries);
+        const literals = new Map(entries.map(([key], index) => [key, encoded[index]]));
+        for (const name of ['chat', 'tools', 'sysmsg', 'icons', 'rollback-list', 'setting-v2']) {
+            const template = fs.readFileSync(path.join(root, 'luci-app-oasis/files/luci/view', name + '.htm'), 'utf8');
+            const context = { window: {} };
+            const expected = [];
+            for (const block of template.matchAll(/<script>([\s\S]*?)<\/script>/g)) {
+                assert.doesNotMatch(block[1], /<%:/, name + ': HTML translation tag in JS');
+                const rendered = block[1].replace(/(\w+):\s*<%=\s*translate_js\(("(?:\\.|[^"\\])*")\)\s*%>/g,
+                    (_, key, message) => {
+                        const id = JSON.parse(message);
+                        assert.ok(literals.has(id), id);
+                        expected.push([key, selectedCatalog.get(id).translation]);
+                        return key + ': ' + literals.get(id);
+                    }).replace(/<%=[\s\S]*?%>/g, 'fixture');
+                vm.runInNewContext(rendered, context);
+            }
+            const dictionaries = Object.entries(context.window).filter(([key]) => key.endsWith('Strings')).map(([, value]) => value);
+            assert.equal(dictionaries.length, 1, name);
+            for (const [key, value] of expected) assert.equal(dictionaries[0][key], value, name + ':' + key);
         }
-        const dictionaries = Object.entries(context.window).filter(([key]) => key.endsWith('Strings')).map(([, value]) => value);
-        assert.equal(dictionaries.length, 1, name);
-        for (const [key, value] of expected) assert.equal(dictionaries[0][key], value, name + ':' + key);
-    }
-});
+    });
+}
 
 test('helper is packaged with the templates, and fixed bridge keys remain available', () => {
     const makefile = fs.readFileSync(path.join(root, 'luci-app-oasis/Makefile'), 'utf8');
@@ -174,4 +176,11 @@ test('helper is packaged with the templates, and fixed bridge keys remain availa
     }
     const sysmsg = fs.readFileSync(path.join(root, 'luci-app-oasis/files/luci/view/sysmsg.htm'), 'utf8');
     assert.ok(sysmsg.includes('titleLabel: <%= translate_js("TITLE:") %>'));
+});
+
+test('Simplified Chinese package uses the LuCI language alias and expected LMO path', () => {
+    const makefile = fs.readFileSync(path.join(root, 'lang/luci-i18n-oasis-zh-cn/Makefile'), 'utf8');
+    assert.match(makefile, /@LUCI_LANG_zh_Hans/);
+    assert.match(makefile, /luci-i18n-base-zh-cn/);
+    assert.match(makefile, /oasis\.zh-cn\.lmo/);
 });

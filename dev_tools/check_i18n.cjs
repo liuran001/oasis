@@ -5,7 +5,10 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const ROOT = path.resolve(__dirname, '..');
-const CATALOG = 'lang/luci-i18n-oasis-ja/po/ja/luci-app-oasis.po';
+const LANGUAGES = [
+    { name: 'Japanese', catalog: 'lang/luci-i18n-oasis-ja/po/ja/luci-app-oasis.po' },
+    { name: 'Simplified Chinese', catalog: 'lang/luci-i18n-oasis-zh-cn/po/zh_Hans/luci-app-oasis.po' },
+];
 const TEMPLATE = 'lang/luci-i18n-oasis-ja/po/templates/luci-app-oasis.pot';
 const PACKAGES = ['luci-app-oasis', 'oasis-tool-maker'];
 const UNCHANGED = new Set(['OK', 'Raw(JSON)', 'URL:', 'Function Calling',
@@ -116,11 +119,11 @@ function renderPot(messages) {
         + '\nmsgid ' + JSON.stringify(key) + '\nmsgstr ""\n').join('');
 }
 
-function audit(scanResult, catalog, potSource) {
+function audit(scanResult, catalog, potSource, language = 'Japanese') {
     const errors = [...scanResult.errors];
     if (renderPot(scanResult.messages) !== potSource) errors.push('POT is out of date; run node dev_tools/check_i18n.cjs --write-pot');
     for (const key of scanResult.messages.keys()) {
-        if (!catalog.has(key)) errors.push('Missing Japanese translation: ' + key);
+        if (!catalog.has(key)) errors.push('Missing ' + language + ' translation: ' + key);
     }
     const placeholders = value => JSON.stringify((value.match(/\{[A-Za-z_]\w*\}/g) || []).sort());
     for (const [key, entry] of catalog) {
@@ -138,19 +141,25 @@ function main(args) {
     }
     const result = scan();
     if (args[0] === '--write-pot') {
-        // Generated catalog metadata only. Never overwrite Japanese translations.
+        // Generated catalog metadata only. Never overwrite translated catalogs.
         fs.writeFileSync(path.join(ROOT, TEMPLATE), renderPot(result.messages));
         console.log('Updated ' + TEMPLATE + ' (' + result.messages.size + ' messages)');
         return;
     }
-    const catalog = parsePo(fs.readFileSync(path.join(ROOT, CATALOG), 'utf8'));
-    const errors = audit(result, catalog, fs.readFileSync(path.join(ROOT, TEMPLATE), 'utf8'));
-    const checked = spawnSync('msgfmt', ['--check', '-o', '/dev/null', path.join(ROOT, CATALOG)], { encoding: 'utf8', timeout: 10000 });
-    if (checked.error) errors.push('msgfmt is required (install GNU gettext): ' + checked.error.message);
-    else if (checked.status !== 0) errors.push(checked.stderr || 'msgfmt failed');
+    const potSource = fs.readFileSync(path.join(ROOT, TEMPLATE), 'utf8');
+    const errors = [], summaries = [];
+    for (const language of LANGUAGES) {
+        const filename = path.join(ROOT, language.catalog);
+        const catalog = parsePo(fs.readFileSync(filename, 'utf8'));
+        errors.push(...audit(result, catalog, potSource, language.name));
+        const checked = spawnSync('msgfmt', ['--check', '-o', '/dev/null', filename], { encoding: 'utf8', timeout: 10000 });
+        if (checked.error) errors.push('msgfmt is required (install GNU gettext): ' + checked.error.message);
+        else if (checked.status !== 0) errors.push(language.name + ': ' + (checked.stderr || 'msgfmt failed'));
+        summaries.push(catalog.size + ' ' + language.name + ' translations');
+    }
     if (errors.length) throw new Error(errors.join('\n'));
-    console.log('i18n OK: ' + result.messages.size + ' source messages, ' + catalog.size
-        + ' Japanese translations; POT, JS bridges, and placeholders match.');
+    console.log('i18n OK: ' + result.messages.size + ' source messages; '
+        + summaries.join(', ') + '; POT, JS bridges, and placeholders match.');
 }
 
 module.exports = { parsePo, inspectTemplate, scan, renderPot, audit };
