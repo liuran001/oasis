@@ -66,5 +66,5 @@ test('SDK build script invokes config through sh and only installs the repositor
     assert.match(script, /sh \.\/scripts\/config --enable CONFIG_LUCI_LANG_zh_Hans/);
     assert.match(script, /\.\/scripts\/feeds install -p oasis -f "\$package"/);
     assert.doesNotMatch(script, /\.\/scripts\/feeds install -a/);
-    assert.match(script, /make package\/index/);
+    assert.match(script, /make -j1 V=s package\/index/);
 });
