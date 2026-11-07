@@ -9,7 +9,7 @@ LUCI_NAME:=luci-i18n-oasis-ja
 LUCI_TYPE:=i18n
 LUCI_BASENAME:=oasis
 LUCI_TITLE:=Japanese translation for luci-app-oasis
-LUCI_DEPENDS:=+luci-app-oasis +luci-i18n-base-ja @LUCI_LANG_ja
+LUCI_DEPENDS:=+luci-app-oasis +luci-i18n-base-ja
 LUCI_PKGARCH:=all
 
 include $(TOPDIR)/feeds/luci/luci.mk

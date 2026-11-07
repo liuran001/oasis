@@ -188,7 +188,7 @@ for (const [packageName, language, basePackage, lmo] of [
         assert.match(makefile, /PKG_BUILD_DEPENDS:=luci-base\/host/);
         assert.match(makefile, /LUCI_TYPE:=i18n/);
         assert.match(makefile, /include \$\(TOPDIR\)\/feeds\/luci\/luci\.mk/);
-        assert.match(makefile, new RegExp('@LUCI_LANG_' + language));
+        assert.doesNotMatch(makefile, new RegExp('@LUCI_LANG_' + language));
         assert.match(makefile, new RegExp(basePackage));
         assert.ok(fs.existsSync(path.join(root, 'lang', packageName, 'po', language, 'luci-app-oasis.po')));
     });
