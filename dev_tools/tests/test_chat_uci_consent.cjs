@@ -93,6 +93,7 @@ async function fixture(t, { mobile = false, japanese = false, fallback = false }
             await page.locator('#mb-uci-config-list').selectOption(target);
             // Close the sheet using its existing backdrop/outside-click handler.
             await page.locator('#ai-service-list').click();
+            await page.locator('#mobile-bottom-sheet').waitFor({ state: 'hidden' });
         } else await page.locator('#uci-config-list').selectOption(target);
     };
     env.send = async text => {
@@ -129,6 +130,7 @@ for (const mobile of [false, true]) {
         }
         await page.locator('#uci-share-dialog button[value="cancel"]').click();
         await env.dialog.waitFor({ state: 'hidden' });
+        await page.waitForFunction(() => document.activeElement === document.querySelector('#message-input'));
         assert.equal(await page.locator('#uci-config-list').inputValue(), 'network');
         assert.equal(await page.locator('#message-input').inputValue(), 'Inspect this configuration');
         assert.deepEqual(env.uci, []);
