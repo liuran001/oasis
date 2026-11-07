@@ -72,6 +72,10 @@ printf 'src-link oasis %s\n' "$ROOT" >> feeds.conf
 ./scripts/feeds update -a
 make defconfig
 
+mkdir -p "$SDK_DIR/package/feeds/oasis"
+ln -sfn "$ROOT/lang/luci-i18n-oasis-ja" "$SDK_DIR/package/feeds/oasis/luci-i18n-oasis-ja"
+ln -sfn "$ROOT/lang/luci-i18n-oasis-zh-cn" "$SDK_DIR/package/feeds/oasis/luci-i18n-oasis-zh-cn"
+
 sh ./scripts/config --enable CONFIG_LUCI_LANG_ja
 sh ./scripts/config --enable CONFIG_LUCI_LANG_zh_Hans
 TARGETS=""
