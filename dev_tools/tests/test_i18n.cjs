@@ -9,8 +9,15 @@ const { parsePo, inspectTemplate, scan, renderPot, audit } = require('../check_i
 
 const root = path.resolve(__dirname, '../..');
 const catalog = parsePo(fs.readFileSync(path.join(root, 'lang/luci-i18n-oasis-ja/po/ja/luci-app-oasis.po'), 'utf8'));
+const chineseCatalog = parsePo(fs.readFileSync(path.join(root, 'lang/luci-i18n-oasis-zh-cn/po/zh_Hans/luci-app-oasis.po'), 'utf8'));
 const source = scan(root);
 const pot = fs.readFileSync(path.join(root, 'lang/luci-i18n-oasis-ja/po/templates/luci-app-oasis.pot'), 'utf8');
+
+test('Simplified Chinese catalog covers every source message', () => {
+    assert.deepEqual(audit(source, chineseCatalog, pot, 'Simplified Chinese'), []);
+    assert.equal(chineseCatalog.size, source.messages.size);
+    assert.equal(parsePo(pot).size, chineseCatalog.size);
+});
 
 function changed(key, fields) {
     const result = new Map(catalog);
