@@ -83,16 +83,20 @@ make defconfig
 # Build only the repository packages and their required dependencies.
 make -j"$(nproc)" $TARGETS
 
-ARTIFACT_DIR=$(find "$SDK_DIR/bin/packages" -type d -path "*/$PACKAGE_ARCH/oasis" 2>/dev/null | head -n 1 || true)
-if [ -z "$ARTIFACT_DIR" ]; then
-    echo "Package output directories under $SDK_DIR/bin:" >&2
-    find "$SDK_DIR/bin" -maxdepth 5 -type d | sort >&2
-    echo "Package files under $SDK_DIR/bin:" >&2
-    find "$SDK_DIR/bin" -maxdepth 5 -type f | sort >&2
-    fail "package output directory not found for $PACKAGE_ARCH/oasis"
-fi
-sh "$ROOT/dev_tools/verify_packages.sh" "$ARTIFACT_DIR" "$FORMAT" $PACKAGES
-
-# Copy only this feed's packages; dependencies from other feeds are not release artifacts.
-find "$ARTIFACT_DIR" -maxdepth 1 -type f -name "*.$FORMAT" -exec cp -f '{}' "$OUT_DIR/" ';'
+# Collect only the explicitly requested packages, wherever the SDK placed them.
+find "$OUT_DIR" -maxdepth 1 -type f -delete
+for package in $PACKAGES; do
+    case "$FORMAT" in
+        ipk) pattern="${package}_*.ipk" ;;
+        apk) pattern="${package}-[0-9]*.apk" ;;
+    esac
+    package_file=$(find "$SDK_ROOT" -type f -name "$pattern" | head -n 1)
+    if [ -z "$package_file" ]; then
+        echo "Package files found under $SDK_ROOT:" >&2
+        find "$SDK_ROOT" -type f \( -name '*.ipk' -o -name '*.apk' \) | sort >&2
+        fail "cannot find $package in SDK output"
+    fi
+    cp -f "$package_file" "$OUT_DIR/"
+done
+sh "$ROOT/dev_tools/verify_packages.sh" "$OUT_DIR" "$FORMAT" $PACKAGES
 printf 'Packages ready in %s\n' "$OUT_DIR"
