@@ -95,6 +95,9 @@ sh "$ROOT/dev_tools/package_translation.sh" "$SDK_DIR" zh_Hans "$FORMAT" "$OUT_D
 
 # Collect only the explicitly requested packages, wherever the SDK placed them.
 for package in $PACKAGES; do
+    case "$package" in
+        luci-i18n-oasis-ja|luci-i18n-oasis-zh-cn) continue ;;
+    esac
     case "$FORMAT" in
         ipk) pattern="${package}_*.ipk" ;;
         apk) pattern="${package}-[0-9]*.apk" ;;

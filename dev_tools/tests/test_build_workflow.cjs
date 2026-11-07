@@ -74,4 +74,5 @@ test('SDK build script invokes config through sh and only installs the repositor
     assert.match(translation, /mkpkg/);
     assert.doesNotMatch(script, /package\/luci-i18n-oasis-ja\/compile/);
     assert.doesNotMatch(script, /package\/luci-i18n-oasis-zh-cn\/compile/);
+    assert.equal((script.match(/luci-i18n-oasis-ja\|luci-i18n-oasis-zh-cn\) continue/g) || []).length, 2);
 });
