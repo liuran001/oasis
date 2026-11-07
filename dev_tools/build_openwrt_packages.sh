@@ -87,11 +87,11 @@ done
 make defconfig
 
 # Build only the repository packages and their required dependencies.
-make -j"$(nproc)" $TARGETS
+make -j"$(nproc)" $TARGETS CONFIG_PACKAGE_luci-i18n-oasis-ja=y CONFIG_PACKAGE_luci-i18n-oasis-zh-cn=y
 
 # Force fresh translation builds so Prepare and PO-to-LMO conversion run explicitly.
-make -j1 V=99 package/luci-i18n-oasis-ja/clean package/luci-i18n-oasis-ja/compile
-make -j1 V=99 package/luci-i18n-oasis-zh-cn/clean package/luci-i18n-oasis-zh-cn/compile
+make -j1 V=99 package/luci-i18n-oasis-ja/clean package/luci-i18n-oasis-ja/compile CONFIG_PACKAGE_luci-i18n-oasis-ja=y
+make -j1 V=99 package/luci-i18n-oasis-zh-cn/clean package/luci-i18n-oasis-zh-cn/compile CONFIG_PACKAGE_luci-i18n-oasis-zh-cn=y
 
 # Collect only the explicitly requested packages, wherever the SDK placed them.
 find "$OUT_DIR" -maxdepth 1 -type f -delete
