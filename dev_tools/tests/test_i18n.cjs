@@ -178,9 +178,15 @@ test('helper is packaged with the templates, and fixed bridge keys remain availa
     assert.ok(sysmsg.includes('titleLabel: <%= translate_js("TITLE:") %>'));
 });
 
-test('Simplified Chinese package uses the LuCI language alias and expected LMO path', () => {
-    const makefile = fs.readFileSync(path.join(root, 'lang/luci-i18n-oasis-zh-cn/Makefile'), 'utf8');
-    assert.match(makefile, /@LUCI_LANG_zh_Hans/);
-    assert.match(makefile, /luci-i18n-base-zh-cn/);
-    assert.match(makefile, /oasis\.zh-cn\.lmo/);
-});
+for (const [packageName, language, basePackage, lmo] of [
+    ['luci-i18n-oasis-ja', 'ja', 'luci-i18n-base-ja', 'oasis.ja.lmo'],
+    ['luci-i18n-oasis-zh-cn', 'zh_Hans', 'luci-i18n-base-zh-cn', 'oasis.zh-cn.lmo'],
+]) {
+    test(packageName + ' declares its package name, LuCI language alias and LMO path', () => {
+        const makefile = fs.readFileSync(path.join(root, 'lang', packageName, 'Makefile'), 'utf8');
+        assert.match(makefile, new RegExp('PKG_NAME:=' + packageName + '\\n'));
+        assert.match(makefile, new RegExp('@LUCI_LANG_' + language));
+        assert.match(makefile, new RegExp(basePackage));
+        assert.match(makefile, new RegExp(lmo.replace('.', '\\.')));
+    });
+}

@@ -1,5 +1,6 @@
 include $(TOPDIR)/rules.mk
 
+PKG_NAME:=luci-i18n-oasis-zh-cn
 PKG_VERSION:=1.0.0
 PKG_RELEASE:=1
 PKG_BUILD_DEPENDS:=po2lmo/host
