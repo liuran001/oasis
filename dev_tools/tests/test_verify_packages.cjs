@@ -84,12 +84,13 @@ function createApkTool(t) {
     fs.writeFileSync(tool, `#!/bin/sh
 set -eu
 printf '%s\\n' "$@" > "$OASIS_TEST_APK_ARGS"
-[ "$1" = "extract" ]
-[ "$2" = "--destination" ]
-[ -d "$3" ]
-[ -f "$4" ]
-mkdir -p "$3/usr/lib/lua/luci/i18n"
-printf 'fixture-lmo' > "$3/usr/lib/lua/luci/i18n/oasis.zh-cn.lmo"
+[ "$1" = "--allow-untrusted" ]
+[ "$2" = "extract" ]
+[ "$3" = "--destination" ]
+[ -d "$4" ]
+[ -f "$5" ]
+mkdir -p "$4/usr/lib/lua/luci/i18n"
+printf 'fixture-lmo' > "$4/usr/lib/lua/luci/i18n/oasis.zh-cn.lmo"
 `);
     fs.chmodSync(tool, 0o755);
     return { tool, argumentsFile };
@@ -127,7 +128,7 @@ test('accepts a zstd-compressed APK package', t => {
     assert.match(result.stdout, /Verified 11 apk packages/);
 });
 
-test('extracts an APK v3 package with the SDK tool when tar cannot read it', t => {
+test('extracts an unsigned APK v3 package with the SDK tool when tar cannot read it', t => {
     const directory = fixture(t, 'apk');
     const packageFile = path.join(directory, packageName('luci-i18n-oasis-zh-cn', 'apk'));
     fs.writeFileSync(packageFile, 'opaque APK v3 fixture');
@@ -138,8 +139,8 @@ test('extracts an APK v3 package with the SDK tool when tar cannot read it', t =
     });
     assert.equal(result.status, 0, result.stderr);
     const args = fs.readFileSync(argumentsFile, 'utf8').trim().split('\n');
-    assert.deepEqual(args.slice(0, 2), ['extract', '--destination']);
-    assert.equal(args[3], packageFile);
+    assert.deepEqual(args.slice(0, 3), ['--allow-untrusted', 'extract', '--destination']);
+    assert.equal(args[4], packageFile);
     assert.match(result.stdout, /Verified 11 apk packages/);
 });
 

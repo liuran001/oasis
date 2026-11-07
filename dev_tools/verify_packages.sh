@@ -69,7 +69,7 @@ case "$EXT" in
             :
         elif [ -n "${OASIS_APK_TOOL:-}" ] && [ -x "$OASIS_APK_TOOL" ]; then
             mkdir -p "$TMP_DIR/apk-contents"
-            if ! "$OASIS_APK_TOOL" extract --destination "$TMP_DIR/apk-contents" "$ZH_PACKAGE"; then
+            if ! "$OASIS_APK_TOOL" --allow-untrusted extract --destination "$TMP_DIR/apk-contents" "$ZH_PACKAGE"; then
                 fail "cannot extract APK package $ZH_PACKAGE with $OASIS_APK_TOOL"
             fi
             (cd "$TMP_DIR/apk-contents" && find . -type f) > "$TMP_DIR/contents"
