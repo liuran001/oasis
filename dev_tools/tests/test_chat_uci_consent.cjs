@@ -298,10 +298,12 @@ test(`failed retrieval preserves input and never sends a plain fallback message 
     env.uciStatus = status;
     env.uciData = { error: 'Not Found' };
     const alerts = [];
+    const alertEvent = env.page.waitForEvent('dialog');
     env.page.on('dialog', async dialog => { alerts.push(dialog.message()); await dialog.accept(); });
     await env.select('network');
     await env.send('Keep my input');
     await env.agree();
+    await alertEvent;
     await env.page.waitForFunction(() => !document.querySelector('#message-input').readOnly);
     assert.equal(env.chats.length, 0);
     assert.equal(await env.page.locator('#message-input').inputValue(), 'Keep my input');
