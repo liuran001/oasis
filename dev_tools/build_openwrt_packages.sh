@@ -82,7 +82,6 @@ make defconfig
 
 # Build only the repository packages and their required dependencies.
 make -j"$(nproc)" $TARGETS
-make -j1 V=s package/index CONFIG_SIGNED_PACKAGES=n
 
 ARTIFACT_DIR=$(find "$SDK_DIR/bin/packages" -type d -path "*/$PACKAGE_ARCH/oasis" 2>/dev/null | head -n 1 || true)
 if [ -z "$ARTIFACT_DIR" ]; then
