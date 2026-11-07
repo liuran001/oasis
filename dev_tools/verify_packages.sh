@@ -65,7 +65,7 @@ case "$EXT" in
         fi
         ;;
     apk)
-        if ! tar -tzf "$ZH_PACKAGE" > "$TMP_DIR/contents"; then
+        if ! tar -tf "$ZH_PACKAGE" > "$TMP_DIR/contents"; then
             fail "cannot read APK package $ZH_PACKAGE"
         fi
         ;;

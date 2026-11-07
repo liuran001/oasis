@@ -34,7 +34,13 @@ function createChinesePackage(directory, ext, withLmo = true, ipkContainer = 'ar
     const destination = path.join(directory, packageName('luci-i18n-oasis-zh-cn', ext));
     if (ext === 'apk') {
         fs.writeFileSync(path.join(data, 'PKGINFO'), 'pkgname = luci-i18n-oasis-zh-cn\n');
-        run('tar', ['-czf', destination, '-C', data, '.']);
+        if (ipkContainer === 'raw') {
+            run('tar', ['-cf', destination, '-C', data, '.']);
+        } else if (ipkContainer === 'zstd') {
+            run('tar', ['--zstd', '-cf', destination, '-C', data, '.']);
+        } else {
+            run('tar', ['-czf', destination, '-C', data, '.']);
+        }
     } else {
         fs.writeFileSync(path.join(staging, 'debian-binary'), '2.0\n');
         const control = path.join(staging, 'control');
@@ -85,6 +91,18 @@ test('accepts an OpenWrt tar-gzip IPK package', t => {
     const result = verify(fixture(t, 'ipk', { container: 'tar' }), 'ipk');
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /Verified 11 ipk packages/);
+});
+
+test('accepts a raw tar APK package', t => {
+    const result = verify(fixture(t, 'apk', { container: 'raw' }), 'apk');
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Verified 11 apk packages/);
+});
+
+test('accepts a zstd-compressed APK package', t => {
+    const result = verify(fixture(t, 'apk', { container: 'zstd' }), 'apk');
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Verified 11 apk packages/);
 });
 
 test('rejects a missing expected package', t => {
