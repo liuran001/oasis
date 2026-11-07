@@ -72,14 +72,13 @@ printf 'src-link oasis %s\n' "$ROOT" >> feeds.conf
 ./scripts/feeds update -a
 make defconfig
 
-mkdir -p "$SDK_DIR/package/feeds/oasis"
-ln -sfn "$ROOT/lang/luci-i18n-oasis-ja" "$SDK_DIR/package/feeds/oasis/luci-i18n-oasis-ja"
-ln -sfn "$ROOT/lang/luci-i18n-oasis-zh-cn" "$SDK_DIR/package/feeds/oasis/luci-i18n-oasis-zh-cn"
-
 sh ./scripts/config --enable CONFIG_LUCI_LANG_ja
 sh ./scripts/config --enable CONFIG_LUCI_LANG_zh_Hans
 TARGETS=""
 for package in $PACKAGES; do
+    case "$package" in
+        luci-i18n-oasis-ja|luci-i18n-oasis-zh-cn) continue ;;
+    esac
     ./scripts/feeds install -p oasis -f "$package"
     sh ./scripts/config --enable "CONFIG_PACKAGE_$package"
     TARGETS="$TARGETS package/$package/compile"
@@ -87,14 +86,14 @@ done
 make defconfig
 
 # Build only the repository packages and their required dependencies.
-make -j"$(nproc)" $TARGETS CONFIG_PACKAGE_luci-i18n-oasis-ja=y CONFIG_PACKAGE_luci-i18n-oasis-zh-cn=y
+make -j"$(nproc)" $TARGETS
 
-# Force fresh translation builds so Prepare and PO-to-LMO conversion run explicitly.
-make -j1 V=99 package/luci-i18n-oasis-ja/clean package/luci-i18n-oasis-ja/compile CONFIG_PACKAGE_luci-i18n-oasis-ja=y
-make -j1 V=99 package/luci-i18n-oasis-zh-cn/clean package/luci-i18n-oasis-zh-cn/compile CONFIG_PACKAGE_luci-i18n-oasis-zh-cn=y
+# Package translations with the SDK's official LMO and package tools.
+find "$OUT_DIR" -maxdepth 1 -type f -delete
+sh "$ROOT/dev_tools/package_translation.sh" "$SDK_DIR" ja "$FORMAT" "$OUT_DIR"
+sh "$ROOT/dev_tools/package_translation.sh" "$SDK_DIR" zh_Hans "$FORMAT" "$OUT_DIR"
 
 # Collect only the explicitly requested packages, wherever the SDK placed them.
-find "$OUT_DIR" -maxdepth 1 -type f -delete
 for package in $PACKAGES; do
     case "$FORMAT" in
         ipk) pattern="${package}_*.ipk" ;;
