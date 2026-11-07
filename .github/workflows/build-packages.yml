@@ -41,10 +41,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends lua5.1 gettext binutils tar
 
+      - name: Install browser test dependencies
+        run: |
+          npm install --prefix "$RUNNER_TEMP/oasis-tests" --no-save --no-package-lock playwright@1.65.0
+          "$RUNNER_TEMP/oasis-tests/node_modules/.bin/playwright" install --with-deps chromium
+
       - name: Audit Japanese and Simplified Chinese catalogs
         run: node dev_tools/check_i18n.cjs
 
       - name: Run JavaScript tests
+        env:
+          NODE_PATH: ${{ runner.temp }}/oasis-tests/node_modules
         run: |
           for test_file in dev_tools/tests/test_*.cjs; do
             node "$test_file"

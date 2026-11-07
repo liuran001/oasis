@@ -51,3 +51,9 @@ test('host tests run before SDK builds and releases are tag-only', () => {
     assert.match(workflow, /startsWith\(github\.ref, 'refs\/tags\/v'\)/);
     assert.match(workflow, /softprops\/action-gh-release@v2/);
 });
+
+test('browser tests install pinned Playwright and Chromium', () => {
+    assert.match(workflow, /playwright@1\.65\.0/);
+    assert.match(workflow, /playwright" install --with-deps chromium/);
+    assert.match(workflow, /NODE_PATH:\s*\$\{\{\s*runner\.temp\s*\}\}\/oasis-tests\/node_modules/);
+});
