@@ -9,8 +9,15 @@ const { parsePo, inspectTemplate, scan, renderPot, audit } = require('../check_i
 
 const root = path.resolve(__dirname, '../..');
 const catalog = parsePo(fs.readFileSync(path.join(root, 'lang/luci-i18n-oasis-ja/po/ja/luci-app-oasis.po'), 'utf8'));
+const chineseCatalog = parsePo(fs.readFileSync(path.join(root, 'lang/luci-i18n-oasis-zh-cn/po/zh_Hans/luci-app-oasis.po'), 'utf8'));
 const source = scan(root);
 const pot = fs.readFileSync(path.join(root, 'lang/luci-i18n-oasis-ja/po/templates/luci-app-oasis.pot'), 'utf8');
+
+test('Simplified Chinese catalog covers every source message', () => {
+    assert.deepEqual(audit(source, chineseCatalog, pot, 'Simplified Chinese'), []);
+    assert.equal(chineseCatalog.size, source.messages.size);
+    assert.equal(parsePo(pot).size, chineseCatalog.size);
+});
 
 function changed(key, fields) {
     const result = new Map(catalog);
@@ -133,30 +140,32 @@ test('Lua serializer preserves Unicode, quotes, backslashes and newlines without
     assert.doesNotThrow(() => new vm.Script('const label = ' + encoded + ';'));
 });
 
-test('all six rendered WebUI dictionaries parse as JavaScript and contain exact Japanese values', () => {
-    const entries = [...catalog].map(([key, entry]) => [key, entry.translation]);
-    const encoded = serializeTranslations(entries);
-    const literals = new Map(entries.map(([key], index) => [key, encoded[index]]));
-    for (const name of ['chat', 'tools', 'sysmsg', 'icons', 'rollback-list', 'setting-v2']) {
-        const template = fs.readFileSync(path.join(root, 'luci-app-oasis/files/luci/view', name + '.htm'), 'utf8');
-        const context = { window: {} };
-        const expected = [];
-        for (const block of template.matchAll(/<script>([\s\S]*?)<\/script>/g)) {
-            assert.doesNotMatch(block[1], /<%:/, name + ': HTML translation tag in JS');
-            const rendered = block[1].replace(/(\w+):\s*<%=\s*translate_js\(("(?:\\.|[^"\\])*")\)\s*%>/g,
-                (_, key, message) => {
-                    const id = JSON.parse(message);
-                    assert.ok(literals.has(id), id);
-                    expected.push([key, catalog.get(id).translation]);
-                    return key + ': ' + literals.get(id);
-                }).replace(/<%=[\s\S]*?%>/g, 'fixture');
-            vm.runInNewContext(rendered, context);
+for (const [language, selectedCatalog] of [['Japanese', catalog], ['Simplified Chinese', chineseCatalog]]) {
+    test('all six rendered WebUI dictionaries parse as JavaScript and contain exact ' + language + ' values', () => {
+        const entries = [...selectedCatalog].map(([key, entry]) => [key, entry.translation]);
+        const encoded = serializeTranslations(entries);
+        const literals = new Map(entries.map(([key], index) => [key, encoded[index]]));
+        for (const name of ['chat', 'tools', 'sysmsg', 'icons', 'rollback-list', 'setting-v2']) {
+            const template = fs.readFileSync(path.join(root, 'luci-app-oasis/files/luci/view', name + '.htm'), 'utf8');
+            const context = { window: {} };
+            const expected = [];
+            for (const block of template.matchAll(/<script>([\s\S]*?)<\/script>/g)) {
+                assert.doesNotMatch(block[1], /<%:/, name + ': HTML translation tag in JS');
+                const rendered = block[1].replace(/(\w+):\s*<%=\s*translate_js\(("(?:\\.|[^"\\])*")\)\s*%>/g,
+                    (_, key, message) => {
+                        const id = JSON.parse(message);
+                        assert.ok(literals.has(id), id);
+                        expected.push([key, selectedCatalog.get(id).translation]);
+                        return key + ': ' + literals.get(id);
+                    }).replace(/<%=[\s\S]*?%>/g, 'fixture');
+                vm.runInNewContext(rendered, context);
+            }
+            const dictionaries = Object.entries(context.window).filter(([key]) => key.endsWith('Strings')).map(([, value]) => value);
+            assert.equal(dictionaries.length, 1, name);
+            for (const [key, value] of expected) assert.equal(dictionaries[0][key], value, name + ':' + key);
         }
-        const dictionaries = Object.entries(context.window).filter(([key]) => key.endsWith('Strings')).map(([, value]) => value);
-        assert.equal(dictionaries.length, 1, name);
-        for (const [key, value] of expected) assert.equal(dictionaries[0][key], value, name + ':' + key);
-    }
-});
+    });
+}
 
 test('helper is packaged with the templates, and fixed bridge keys remain available', () => {
     const makefile = fs.readFileSync(path.join(root, 'luci-app-oasis/Makefile'), 'utf8');
@@ -168,3 +177,19 @@ test('helper is packaged with the templates, and fixed bridge keys remain availa
     const sysmsg = fs.readFileSync(path.join(root, 'luci-app-oasis/files/luci/view/sysmsg.htm'), 'utf8');
     assert.ok(sysmsg.includes('titleLabel: <%= translate_js("TITLE:") %>'));
 });
+
+for (const [packageName, language, basePackage, lmo] of [
+    ['luci-i18n-oasis-ja', 'ja', 'luci-i18n-base-ja', 'oasis.ja.lmo'],
+    ['luci-i18n-oasis-zh-cn', 'zh_Hans', 'luci-i18n-base-zh-cn', 'oasis.zh-cn.lmo'],
+]) {
+    test(packageName + ' uses the official LuCI translation builder and source catalog', () => {
+        const makefile = fs.readFileSync(path.join(root, 'lang', packageName, 'Makefile'), 'utf8');
+        assert.match(makefile, new RegExp('PKG_NAME:=' + packageName + '\\n'));
+        assert.match(makefile, /PKG_BUILD_DEPENDS:=luci-base\/host/);
+        assert.match(makefile, /LUCI_TYPE:=i18n/);
+        assert.match(makefile, /include \$\(TOPDIR\)\/feeds\/luci\/luci\.mk/);
+        assert.doesNotMatch(makefile, new RegExp('@LUCI_LANG_' + language));
+        assert.doesNotMatch(makefile, new RegExp(basePackage));
+        assert.ok(fs.existsSync(path.join(root, 'lang', packageName, 'po', language, 'luci-app-oasis.po')));
+    });
+}
