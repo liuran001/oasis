@@ -68,4 +68,6 @@ test('SDK build script invokes config through sh and only installs the repositor
     assert.doesNotMatch(script, /\.\/scripts\/feeds install -a/);
     assert.doesNotMatch(script, /package\/index/);
     assert.match(script, /WORK_DIR=\$\(CDPATH= cd -- "\$WORK_DIR" && pwd -P\)/);
+    assert.match(script, /package\/luci-i18n-oasis-ja\/clean/);
+    assert.match(script, /package\/luci-i18n-oasis-zh-cn\/clean/);
 });
