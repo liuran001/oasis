@@ -53,7 +53,11 @@ other_count=$(find "$DIRECTORY" -maxdepth 1 -type f -name "*.$other_format" | wc
 
 case "$EXT" in
     ipk)
-        if ! ar p "$ZH_PACKAGE" data.tar.gz > "$TMP_DIR/data.tar.gz"; then
+        if ar p "$ZH_PACKAGE" data.tar.gz > "$TMP_DIR/data.tar.gz" 2>/dev/null; then
+            :
+        elif tar -xOf "$ZH_PACKAGE" ./data.tar.gz > "$TMP_DIR/data.tar.gz"; then
+            :
+        else
             fail "cannot extract data.tar.gz from $ZH_PACKAGE"
         fi
         if ! tar -tzf "$TMP_DIR/data.tar.gz" > "$TMP_DIR/contents"; then

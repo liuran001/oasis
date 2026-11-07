@@ -24,7 +24,7 @@ function packageName(name, ext, version = '1.0.0-r1') {
     return ext === 'ipk' ? `${name}_${version}_all.ipk` : `${name}-${version}.apk`;
 }
 
-function createChinesePackage(directory, ext, withLmo = true) {
+function createChinesePackage(directory, ext, withLmo = true, ipkContainer = 'ar') {
     const staging = fs.mkdtempSync(path.join(os.tmpdir(), 'oasis-package-staging-'));
     const data = path.join(staging, 'data');
     const lmoDirectory = path.join(data, 'usr/lib/lua/luci/i18n');
@@ -41,7 +41,11 @@ function createChinesePackage(directory, ext, withLmo = true) {
         fs.mkdirSync(control);
         fs.writeFileSync(path.join(control, 'control'), 'Package: luci-i18n-oasis-zh-cn\n');
         run('tar', ['-czf', path.join(staging, 'control.tar.gz'), '-C', control, '.']);
-        run('ar', ['r', destination, path.join(staging, 'debian-binary'), path.join(staging, 'control.tar.gz'), path.join(staging, 'data.tar.gz')]);
+        if (ipkContainer === 'tar') {
+            run('tar', ['-czf', destination, '-C', staging, './debian-binary', './data.tar.gz', './control.tar.gz']);
+        } else {
+            run('ar', ['r', destination, path.join(staging, 'debian-binary'), path.join(staging, 'control.tar.gz'), path.join(staging, 'data.tar.gz')]);
+        }
     }
     fs.rmSync(staging, { recursive: true, force: true });
 }
@@ -51,7 +55,7 @@ function fixture(t, ext, options = {}) {
     t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
     for (const name of packages) {
         if (name === 'luci-i18n-oasis-zh-cn') {
-            if (!options.missingChinese) createChinesePackage(directory, ext, options.withLmo !== false);
+            if (!options.missingChinese) createChinesePackage(directory, ext, options.withLmo !== false, options.container || 'ar');
         } else {
             fs.writeFileSync(path.join(directory, packageName(name, ext)), 'fixture');
         }
@@ -76,6 +80,12 @@ for (const ext of ['ipk', 'apk']) {
         assert.match(result.stderr, /oasis\.zh-cn\.lmo/);
     });
 }
+
+test('accepts an OpenWrt tar-gzip IPK package', t => {
+    const result = verify(fixture(t, 'ipk', { container: 'tar' }), 'ipk');
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Verified 11 ipk packages/);
+});
 
 test('rejects a missing expected package', t => {
     const result = verify(fixture(t, 'ipk', { missingChinese: true }), 'ipk');
